@@ -126,7 +126,10 @@ function PlanRequests() {
 
 function ZoneSettings() {
   const [zones, setZones] = useState([])
-  const [settings, setSettings] = useState({ free_km: 2, per_km_rate: 10, store_lat: null, store_lng: null, road_factor: 1.3 })
+  const [settings, setSettings] = useState({
+    free_km: 2, per_km_rate: 10, store_lat: null, store_lng: null, road_factor: 1.3,
+    store_name: 'Aadidev Medical Store', store_address: '', store_phone: '',
+  })
   const [newZone, setNewZone] = useState({ name: '', distance_km: '' })
   const [saving, setSaving] = useState(false)
 
@@ -157,6 +160,19 @@ function ZoneSettings() {
     setSaving(false)
   }
 
+  async function saveStoreInfo() {
+    setSaving(true)
+    await supabase
+      .from('delivery_settings')
+      .update({
+        store_name: settings.store_name || 'Aadidev Medical Store',
+        store_address: settings.store_address || null,
+        store_phone: settings.store_phone || null,
+      })
+      .eq('id', 1)
+    setSaving(false)
+  }
+
   async function saveStoreLocation(lat, lng) {
     setSettings(s => ({ ...s, store_lat: lat, store_lng: lng }))
     await supabase.from('delivery_settings').update({ store_lat: lat, store_lng: lng }).eq('id', 1)
@@ -178,6 +194,25 @@ function ZoneSettings() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Store info (shown to customers)</div>
+        <div className="field">
+          <label>Store name</label>
+          <input value={settings.store_name || ''} onChange={e => setSettings(s => ({ ...s, store_name: e.target.value }))} />
+        </div>
+        <div className="field">
+          <label>Address</label>
+          <textarea value={settings.store_address || ''} onChange={e => setSettings(s => ({ ...s, store_address: e.target.value }))} placeholder="Shop no., street, area, Satna, MP" />
+        </div>
+        <div className="field">
+          <label>Contact phone</label>
+          <input value={settings.store_phone || ''} onChange={e => setSettings(s => ({ ...s, store_phone: e.target.value }))} placeholder="10-digit number" />
+        </div>
+        <button className="btn btn-primary btn-block" onClick={saveStoreInfo} disabled={saving}>
+          {saving ? 'Saving…' : 'Save store info'}
+        </button>
+      </div>
+
       <div className="card" style={{ padding: 14, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Store location (for map-based delivery distance)</div>
         <StoreLocationPicker lat={settings.store_lat} lng={settings.store_lng} onChange={saveStoreLocation} />

@@ -8,7 +8,20 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
+  const [storeInfo, setStoreInfo] = useState(null)
   const { addToCart } = useCart()
+
+  useEffect(() => {
+    if (!supabaseReady) return
+    supabase
+      .from('delivery_settings')
+      .select('store_name, store_address, store_phone')
+      .eq('id', 1)
+      .single()
+      .then(({ data }) => {
+        if (data && (data.store_address || data.store_phone)) setStoreInfo(data)
+      })
+  }, [])
 
   useEffect(() => {
     let channel
@@ -67,6 +80,13 @@ export default function Home() {
         />
       </div>
 
+      {storeInfo && (
+        <div className="card" style={{ padding: 12, marginBottom: 12, fontSize: 12.5, color: 'var(--ink-soft)' }}>
+          {storeInfo.store_address && <div>📍 {storeInfo.store_address}</div>}
+          {storeInfo.store_phone && <div style={{ marginTop: 3 }}>📞 {storeInfo.store_phone}</div>}
+        </div>
+      )}
+
       <div className="pill-row">
         {categories.map(c => (
           <button
@@ -101,6 +121,22 @@ function MedicineCard({ medicine, onAdd }) {
   const outOfStock = medicine.stock <= 0
   return (
     <div className="med-card">
+      {medicine.image_url ? (
+        <img
+          src={medicine.image_url}
+          alt={medicine.name}
+          style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 9, marginBottom: 2 }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '100%', height: 90, borderRadius: 9, marginBottom: 2,
+            background: 'var(--green-tint)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+          }}
+        >
+          💊
+        </div>
+      )}
       <div className="cat">{medicine.category}</div>
       <div className="name">{medicine.name}</div>
       {medicine.requires_rx && <span className="rx-tag">Rx required</span>}

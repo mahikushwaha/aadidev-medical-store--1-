@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase, supabaseReady } from '../supabaseClient'
 import BarcodeScanner from '../components/BarcodeScanner'
 
-const emptyForm = { id: null, name: '', category: '', price: '', stock: '', requires_rx: false, barcode: '', expiry_date: '' }
+const emptyForm = { id: null, name: '', category: '', price: '', stock: '', requires_rx: false, barcode: '', expiry_date: '', image_url: '' }
 
 export default function Medicines() {
   const [medicines, setMedicines] = useState([])
@@ -14,6 +14,7 @@ export default function Medicines() {
   const [showBulk, setShowBulk] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   async function load() {
     if (!supabaseReady) return
@@ -53,6 +54,7 @@ export default function Medicines() {
       requires_rx: m.requires_rx,
       barcode: m.barcode || '',
       expiry_date: m.expiry_date || '',
+      image_url: m.image_url || '',
     })
     setShowForm(true)
   }
@@ -67,7 +69,6 @@ export default function Medicines() {
     if (!value.trim()) return
     const existing = medicines.find(m => m.barcode === value.trim())
     if (existing && !form.id) {
-      // repeat scan of a known barcode auto-fills details
       setForm({
         id: existing.id,
         name: existing.name,
@@ -81,6 +82,22 @@ export default function Medicines() {
     }
   }
 
+  async function uploadPhoto(file) {
+    if (!file) return
+    setUploadingPhoto(true)
+    const ext = file.name.split('.').pop()
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('medicine-photos').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+    })
+    if (!error) {
+      const { data } = supabase.storage.from('medicine-photos').getPublicUrl(path)
+      setForm(f => ({ ...f, image_url: data.publicUrl }))
+    }
+    setUploadingPhoto(false)
+  }
+
   async function saveForm() {
     if (!form.name.trim() || form.price === '' || form.stock === '') return
     setSaving(true)
@@ -92,6 +109,7 @@ export default function Medicines() {
       requires_rx: !!form.requires_rx,
       barcode: form.barcode.trim() || null,
       expiry_date: form.expiry_date || null,
+      image_url: form.image_url || null,
     }
     if (form.id) {
       await supabase.from('medicines').update(row).eq('id', form.id)
@@ -195,7 +213,14 @@ export default function Medicines() {
             const expSoon = m.expiry_date && new Date(m.expiry_date) <= in30
             return (
               <div className="list-item" key={m.id}>
-                <div>
+                {m.image_url ? (
+                  <img src={m.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', marginRight: 10, flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 10, flexShrink: 0, fontSize: 18 }}>
+                    💊
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
                     {m.category} · ₹{Number(m.price).toFixed(0)} · stock {m.stock}
@@ -222,6 +247,14 @@ export default function Medicines() {
 
       {showForm && (
         <Modal onClose={() => setShowForm(false)} title={form.id ? 'Edit medicine' : 'Add medicine'}>
+          <div className="field">
+            <label>Photo</label>
+            {form.image_url && (
+              <img src={form.image_url} alt="" style={{ width: '100%', maxHeight: 140, objectFit: 'cover', borderRadius: 9, marginBottom: 8 }} />
+            )}
+            <input type="file" accept="image/*" onChange={e => uploadPhoto(e.target.files?.[0])} />
+            {uploadingPhoto && <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 4 }}>Uploading…</div>}
+          </div>
           <div className="field">
             <label>Barcode</label>
             <div style={{ display: 'flex', gap: 6 }}>
