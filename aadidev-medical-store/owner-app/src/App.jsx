@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthContext'
 import { supabase, supabaseReady } from './supabaseClient'
-import PinLogin from './pages/PinLogin'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Medicines from './pages/Medicines'
 import Orders from './pages/Orders'
@@ -11,7 +11,7 @@ import More from './pages/More'
 import OwnerNav from './components/OwnerNav'
 
 function Shell() {
-  const { lock } = useAuth()
+  const { signOut } = useAuth()
   const [pendingOrders, setPendingOrders] = useState(0)
   const [newPlans, setNewPlans] = useState(0)
 
@@ -41,7 +41,7 @@ function Shell() {
           <div className="title">Aadidev Medical Store</div>
           <div className="sub">Owner console</div>
         </div>
-        <button onClick={lock}>Lock</button>
+        <button onClick={signOut}>Log out</button>
       </header>
       <main className="owner-main">
         <Routes>
@@ -58,8 +58,9 @@ function Shell() {
 }
 
 function Gate() {
-  const { unlocked } = useAuth()
-  return unlocked ? <Shell /> : <PinLogin />
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return user ? <Shell /> : <Login />
 }
 
 export default function App() {

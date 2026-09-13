@@ -6,6 +6,7 @@ const STATUSES = ['Pending', 'Out for delivery', 'Delivered']
 export default function Orders() {
   const [orders, setOrders] = useState([])
   const [filter, setFilter] = useState('active') // active | all | Delivered
+  const [etaDrafts, setEtaDrafts] = useState({})
 
   async function load() {
     if (!supabaseReady) return
@@ -25,6 +26,11 @@ export default function Orders() {
 
   async function updateStatus(id, status) {
     await supabase.from('orders').update({ status }).eq('id', id)
+  }
+
+  async function saveEta(id) {
+    const eta = (etaDrafts[id] ?? '').trim()
+    await supabase.from('orders').update({ eta_text: eta || null }).eq('id', id)
   }
 
   const filtered = orders.filter(o => {
@@ -74,7 +80,10 @@ export default function Orders() {
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{o.order_number}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-                    {o.customer_name} · {o.phone}
+                    {o.customer_name} ·{' '}
+                    <a href={`tel:${o.phone}`} style={{ color: 'var(--blue-dark)', fontWeight: 600 }}>
+                      📞 {o.phone}
+                    </a>
                   </div>
                 </div>
                 <span className={`status-chip status-${o.status.replace(/ /g, '-')}`}>{o.status}</span>
@@ -98,7 +107,7 @@ export default function Orders() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontWeight: 700 }}>₹{Number(o.total).toFixed(0)} · COD</span>
                 <select
                   value={o.status}
@@ -111,6 +120,18 @@ export default function Orders() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  placeholder="Delivery ETA e.g. 30-40 mins"
+                  value={etaDrafts[o.id] ?? o.eta_text ?? ''}
+                  onChange={e => setEtaDrafts(d => ({ ...d, [o.id]: e.target.value }))}
+                  style={{ flex: 1, border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5 }}
+                />
+                <button className="btn btn-outline btn-sm" onClick={() => saveEta(o.id)}>
+                  Set ETA
+                </button>
               </div>
             </div>
           ))}

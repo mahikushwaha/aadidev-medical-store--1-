@@ -5,7 +5,7 @@ import StoreLocationPicker from '../components/StoreLocationPicker'
 
 export default function More() {
   const [tab, setTab] = useState('plans')
-  const { lock } = useAuth()
+    const { signOut } = useAuth()
 
   return (
     <div>
@@ -32,9 +32,10 @@ export default function More() {
 
       {tab === 'plans' ? <PlanRequests /> : <ZoneSettings />}
 
-      <button className="btn btn-outline btn-block" style={{ marginTop: 24 }} onClick={lock}>
-        Lock owner app
+            <button className="btn btn-outline btn-block" style={{ marginTop: 24 }} onClick={signOut}>
+        Log out
       </button>
+      
     </div>
   )
 }

@@ -1,26 +1,43 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { supabase, supabaseReady } from './supabaseClient'
 
 const AuthContext = createContext(null)
-const OWNER_PIN = import.meta.env.VITE_OWNER_PIN || '1234'
 
 export function AuthProvider({ children }) {
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem('ams_owner_unlocked') === '1')
+  const [session, setSession] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  function tryUnlock(pin) {
-    if (pin === OWNER_PIN) {
-      sessionStorage.setItem('ams_owner_unlocked', '1')
-      setUnlocked(true)
-      return true
+  useEffect(() => {
+    if (!supabaseReady) {
+      setLoading(false)
+      return
     }
-    return false
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess)
+    })
+    return () => sub.subscription.unsubscribe()
+  }, [])
+
+  async function signIn(email, password) {
+    if (!supabaseReady) return { error: 'Supabase not connected yet.' }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error?.message }
   }
 
-  function lock() {
-    sessionStorage.removeItem('ams_owner_unlocked')
-    setUnlocked(false)
+  async function signOut() {
+    if (!supabaseReady) return
+    await supabase.auth.signOut()
   }
 
-  return <AuthContext.Provider value={{ unlocked, tryUnlock, lock }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ session, user: session?.user || null, loading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

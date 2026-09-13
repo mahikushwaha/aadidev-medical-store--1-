@@ -78,6 +78,11 @@ export default function Track() {
               <span style={{ fontWeight: 700, fontSize: 13.5 }}>{o.order_number}</span>
               <span className={`status-chip status-${o.status.replace(/ /g, '-')}`}>{o.status}</span>
             </div>
+            {o.eta_text && (
+              <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 4 }}>
+                ⏱ Estimated delivery: {o.eta_text}
+              </div>
+            )}
             <div style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '6px 0' }}>
               {o.items.map(i => `${i.name} ×${i.qty}`).join(', ')}
             </div>
